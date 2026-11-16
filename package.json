@@ -1,0 +1,25 @@
+{
+  "name": "labpartner-finder",
+  "version": "1.0.0",
+  "description": "LabPartner Finder — Full-Stack Academic Study Partner Matching Platform",
+  "scripts": {
+    "server": "cd server && npm start",
+    "client": "cd client && npm run dev",
+    "seed": "cd server && npm run seed",
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install"
+  },
+  "keywords": [
+    "react",
+    "vite",
+    "nodejs",
+    "express",
+    "mongodb",
+    "tailwind",
+    "matching-algorithm",
+    "college",
+    "study-partner"
+  ],
+  "author": "Senior Full-Stack Team",
+  "license": "MIT"
+}
+
