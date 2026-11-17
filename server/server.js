@@ -60,6 +60,22 @@ if (process.env.NODE_ENV === 'production') {
   app.use(morgan('dev'));
 }
 
+// The public website is hosted separately from this Express API.
+// Redirect requests for the API root to the public frontend.
+app.get('/', (req, res) => {
+  const frontendOrigin = (process.env.CLIENT_URL || '')
+    .split(',')
+    .map(url => url.trim())
+    .find(url => url.startsWith('https://') || url.startsWith('http://'));
+
+  if (frontendOrigin) return res.redirect(302, frontendOrigin);
+
+  return res.json({
+    message: 'LabPartner API is running',
+    health: '/api/health'
+  });
+});
+
 // Report database readiness, not only HTTP availability.
 app.get('/api/health', (req, res) => {
   const databaseConnected = mongoose.connection.readyState === 1;
