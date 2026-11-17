@@ -60,11 +60,15 @@ if (process.env.NODE_ENV === 'production') {
   app.use(morgan('dev'));
 }
 
-// Base Health Check
+// Report database readiness, not only HTTP availability.
 app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    message: 'LabPartner Finder API is operational',
+  const databaseConnected = mongoose.connection.readyState === 1;
+  res.status(databaseConnected ? 200 : 503).json({
+    status: databaseConnected ? 'ok' : 'unavailable',
+    database: databaseConnected ? 'connected' : 'disconnected',
+    message: databaseConnected
+      ? 'LabPartner Finder API is operational'
+      : 'LabPartner Finder API cannot reach the database',
     environment: process.env.NODE_ENV || 'development',
     timestamp: new Date().toISOString()
   });
@@ -84,16 +88,34 @@ app.use(errorHandler);
 
 // Database Connection & Server Start
 const PORT = process.env.PORT || 5000;
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/labpartner_db';
+const MONGODB_URI = process.env.MONGODB_URI;
+
+// Never silently use localhost or an example Atlas host in production.
+if (!MONGODB_URI || !(MONGODB_URI.startsWith('mongodb://') || MONGODB_URI.startsWith('mongodb+srv://'))) {
+  console.error('MONGODB_URI is missing or invalid. Set it in Render > Environment (or server/.env locally).');
+  process.exit(1);
+}
+
+if (!process.env.JWT_SECRET) {
+  console.error('JWT_SECRET is missing. Set a unique, strong secret in the server environment.');
+  process.exit(1);
+}
 
 mongoose
-  .connect(MONGODB_URI)
+  .connect(MONGODB_URI, { serverSelectionTimeoutMS: 10000 })
   .then(() => {
-    console.log(' Connected to MongoDB successfully.');
+    console.log('Connected to MongoDB successfully.');
     app.listen(PORT, () => {
-      console.log(` LabPartner Finder Server running on port ${PORT}`);
+      console.log(`LabPartner Finder Server running on port ${PORT}`);
     });
   })
   .catch((err) => {
-    console.error(' MongoDB connection failed:', err.message);
+    // Do not print credentials from the connection URI in production logs.
+    console.error(`MongoDB connection failed (${err.code || err.name || 'unknown error'}).`);
+    if (err.code === 'ENOTFOUND' || err.message?.includes('querySrv ENOTFOUND')) {
+      console.error('Atlas hostname could not be resolved. Copy the exact URI from Atlas > Connect > Drivers, and check that the cluster is running.');
+    } else {
+      console.error('Verify the Atlas URI, credentials, cluster status, and Network Access settings.');
+    }
+    process.exit(1);
   });

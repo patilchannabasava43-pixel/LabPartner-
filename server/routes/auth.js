@@ -23,7 +23,7 @@ const authLimiter = rateLimit({
 const generateToken = (id) => {
   return jwt.sign(
     { id },
-    process.env.JWT_SECRET || 'super_secret_labpartner_jwt_token_2026_academic_key',
+    process.env.JWT_SECRET,
     { expiresIn: '30d' }
   );
 };
