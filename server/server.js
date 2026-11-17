@@ -17,6 +17,12 @@ const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 
+// Render terminates HTTPS and forwards requests through a reverse proxy.
+// Trust only the nearest proxy hop, so auth rate limits use client IPs.
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
 // Determine allowed origins dynamically for local dev and production
 const allowedOrigins = [
   'http://localhost:3000',
